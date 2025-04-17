@@ -1,0 +1,71 @@
+/* src/pages/Dashboard.css */
+
+.dashboard-container {
+    background: linear-gradient(to bottom right, #a2c2e4, #d3aad8);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Arial', sans-serif;
+  }
+  
+  .content-container {
+    background-color: white;
+    border-radius: 15px;
+    padding: 30px;
+    width: 80%;
+    max-width: 1000px;
+  }
+  
+  .dashboard-header {
+    text-align: center;
+    font-size: 30px;
+    color: #333;
+    margin-bottom: 30px;
+  }
+  
+  .card {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
+  }
+  
+  .card-header {
+    font-size: 24px;
+    color: #555;
+    margin-bottom: 20px;
+  }
+  
+  .project-item, .session-item {
+    color: #333;
+    font-size: 18px;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .no-projects, .no-sessions {
+    color: #888;
+    font-size: 16px;
+  }
+  
+  .center-button {
+    text-align: center;
+  }
+  
+  .create-session-btn {
+    background-color: #6a5b9c;
+    color: white;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+  }
+  
+  .create-session-btn:hover {
+    background-color: #5a4c8a;
+  }
+  
