@@ -1,52 +1,106 @@
-// src/pages/Dashboard.js
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
-import { collection, query, getDocs } from 'firebase/firestore';
-import './Dashboard.css';  // Import CSS file for the dashboard
+import { collection, query, getDocs, where } from 'firebase/firestore';
+import './Dashboard.css';
 
 const Dashboard = () => {
-  const [projects, setProjects] = useState([]);  // Store user's projects
-  const [sessions, setSessions] = useState([]);  // Store user's sessions
+  const [projects, setProjects] = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [joinCode, setJoinCode] = useState('');
+  const user = auth.currentUser;
   const navigate = useNavigate();
-  
+
   useEffect(() => {
-    // Fetch user's projects and sessions on component mount
-    fetchProjects();
-    fetchSessions();
-  }, []);
+    if (user) {
+      fetchProjects(); // Fetch projects only when the user is authenticated
+      fetchSessions();
+    } else {
+      navigate('/login'); // Redirect to login if the user is not authenticated
+    }
+  }, [user]);
 
-  // Fetch user's projects from Firestore
   const fetchProjects = async () => {
-    const projectsRef = collection(db, 'projects');
-    const q = query(projectsRef);  // Query all projects
-    const querySnapshot = await getDocs(q);
-    const projectData = querySnapshot.docs.map((doc) => doc.data());
-    setProjects(projectData);
+    if (!user) return; // Ensure user is logged in
+
+    try {
+      console.log("Fetching projects for user:", user.uid); // Debugging log
+      const projectsRef = collection(db, 'users', user.uid, 'projects');
+      const q = query(projectsRef);
+      const querySnapshot = await getDocs(q);
+      
+      // Log the result of the query
+      console.log("Fetched projects:", querySnapshot.docs);
+
+      const projectData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        name: doc.data().name,
+      }));
+      
+      // Log the state being set
+      console.log("Mapped project data:", projectData);
+
+      setProjects(projectData); // Update the state with fetched project data
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+    }
   };
 
-  // Fetch user's sessions from Firestore
   const fetchSessions = async () => {
-    const sessionsRef = collection(db, 'sessions');
-    const q = query(sessionsRef);  // Query all sessions
-    const querySnapshot = await getDocs(q);
-    const sessionData = querySnapshot.docs.map((doc) => doc.data());
-    setSessions(sessionData);
+    try {
+      const sessionsRef = collection(db, 'sessions');
+      const q = query(sessionsRef);
+      const querySnapshot = await getDocs(q);
+      const sessionData = querySnapshot.docs.map((doc) => doc.data());
+      setSessions(sessionData);
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+    }
   };
 
-  // Function to handle creating a new session
   const handleCreateSession = () => {
-    navigate('/create-session');  // Redirect to the Create Session page
+    navigate('/CreateSession');
+  };
+
+  const handleJoinSession = () => {
+    if (joinCode.trim() !== '') {
+      navigate(`/session/${joinCode.trim()}`);
+    }
+  };
+
+  const handleLogout = async () => {
+    await auth.signOut();
+    navigate('/');
   };
 
   return (
     <div className="dashboard-container">
       <div className="content-container">
-        {/* Header */}
-        <h1 className="dashboard-header">Welcome to Your Dashboard</h1>
-        
-        {/* Projects List */}
+        <h1 className="dashboard-header">
+          Welcome, {user?.displayName || user?.email}
+        </h1>
+
+        {/* Session Buttons */}
+        <div className="session-actions">
+          <button onClick={handleCreateSession} className="create-session-btn">
+            Create New Session
+          </button>
+
+          <div className="join-session-container">
+            <input
+              type="text"
+              placeholder="Enter Session ID"
+              className="join-input"
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value)}
+            />
+            <button onClick={handleJoinSession} className="join-btn">
+              Join
+            </button>
+          </div>
+        </div>
+
+        {/* Projects */}
         <div className="card projects-card">
           <h2 className="card-header">Your Projects</h2>
           <ul>
@@ -54,13 +108,15 @@ const Dashboard = () => {
               <li className="no-projects">You don't have any projects yet.</li>
             ) : (
               projects.map((project, index) => (
-                <li key={index} className="project-item">{project.name}</li>
+                <li key={index} className="project-item">
+                  {project.name}
+                </li>
               ))
             )}
           </ul>
         </div>
 
-        {/* Sessions List */}
+        {/* Sessions */}
         <div className="card sessions-card">
           <h2 className="card-header">Your Sessions</h2>
           <ul>
@@ -68,19 +124,17 @@ const Dashboard = () => {
               <li className="no-sessions">You don't have any active sessions.</li>
             ) : (
               sessions.map((session, index) => (
-                <li key={index} className="session-item">{session.name}</li>
+                <li key={index} className="session-item">
+                  {session.name}
+                </li>
               ))
             )}
           </ul>
         </div>
 
-        {/* Button to Create New Session */}
         <div className="center-button">
-          <button
-            onClick={handleCreateSession}
-            className="create-session-btn"
-          >
-            Create New Session
+          <button onClick={handleLogout} className="logout-btn">
+            Logout
           </button>
         </div>
       </div>
