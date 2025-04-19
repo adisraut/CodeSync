@@ -1,71 +1,49 @@
 .create-session-container {
-    text-align: center;
-    padding: 30px;
-  }
-  
-  .project-selector {
-    margin-bottom: 20px;
-  }
-  
-  select, input {
-    padding: 10px;
-    font-size: 16px;
-    margin-top: 10px;
-  }
-  
-  .create-project-btn {
-    background-color: #4CAF50;
-    color: white;
-    padding: 10px 20px;
-    margin-top: 15px;
-    cursor: pointer;
-    border: none;
-    border-radius: 5px;
-  }
-  
-  .create-project-btn:hover {
-    background-color: #45a049;
-  }
-  
-  .start-session-btn {
-    background-color: #6a5b9c;
-    color: white;
-    padding: 15px 30px;
-    border: none;
-    border-radius: 25px;
-    cursor: pointer;
-    font-size: 16px;
-  }
-  
-  .start-session-btn:hover {
-    background-color: #5a4c8a;
-  }
-  
-  /* Modal Styles */
-  .modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .modal-content {
-    background-color: white;
-    padding: 20px;
-    border-radius: 8px;
-    width: 400px;
-  }
-  
-  .close {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    cursor: pointer;
-    font-size: 24px;
-  }
-  
+  max-width: 800px;
+  margin: auto;
+  padding: 2rem;
+  background-color: #1e1e1e;
+  color: white;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.project-list {
+  margin-top: 1rem;
+  padding-left: 0;
+  list-style: none;
+}
+
+.project-list li {
+  margin-bottom: 0.5rem;
+}
+
+.project-list input[type="radio"] {
+  margin-right: 8px;
+}
+
+.new-project-form {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.new-project-form input {
+  padding: 8px;
+  border-radius: 4px;
+  border: none;
+}
+
+button {
+  background-color: #007acc;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  margin-top: 1rem;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+button:hover {
+  background-color: #005fa3;
+}

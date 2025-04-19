@@ -1,124 +1,130 @@
-/* src/pages/Dashboard.css */
+/* General Page Styling */
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #1e1e2f;
+  color: #ffffff;
+}
 
+/* Container for the entire dashboard */
 .dashboard-container {
-    background: linear-gradient(to bottom right, #a2c2e4, #d3aad8);
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-family: 'Arial', sans-serif;
-  }
-  
-  .content-container {
-    background-color: white;
-    border-radius: 15px;
-    padding: 30px;
-    width: 80%;
-    max-width: 1000px;
-  }
-  
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 20px;
+  min-height: 100vh;
+  background-color: #1e1e2f;
+}
+
+/* Inner content */
+.content-container {
+  width: 100%;
+  max-width: 900px;
+}
+
+/* Header Styling */
+.dashboard-header {
+  font-size: 2.2rem;
+  margin-bottom: 30px;
+  color: #ffffff;
+  text-align: center;
+}
+
+/* Card Layout */
+.card {
+  background-color: #2c2c3e;
+  padding: 20px 25px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.card-header {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  color: #66d9ef;
+}
+
+/* Project Items */
+.project-item {
+  list-style: none;
+  margin-bottom: 15px;
+  background-color: #3a3a4f;
+  padding: 15px 20px;
+  border-radius: 10px;
+  transition: background 0.3s ease;
+  color: #ffffff;
+}
+
+/* Clickable hover */
+.project-item.clickable:hover {
+  background-color: #505070;
+  cursor: pointer;
+}
+
+.session-id {
+  font-size: 0.85rem;
+  color: #b0b0b0;
+  margin-top: 5px;
+  display: inline-block;
+}
+
+/* Centered Button Styling */
+.center-button {
+  display: flex;
+  justify-content: center;
+  margin-top: 40px;
+}
+
+/* Dual Button Layout */
+.dual-buttons {
+  gap: 20px;
+}
+
+/* Logout & Create Project Button Styling */
+.logout-btn {
+  background-color: #ff4c4c;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.createproj {
+  background-color: #66d9ef;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.logout-btn:hover {
+  background-color: #ff1a1a;
+}
+
+/* Responsive Layout */
+@media (max-width: 768px) {
   .dashboard-header {
-    text-align: center;
-    font-size: 30px;
-    color: #333;
-    margin-bottom: 30px;
-  }
-  
-  .card {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    margin-bottom: 30px;
-  }
-  
-  .card-header {
-    font-size: 24px;
-    color: #555;
-    margin-bottom: 20px;
-  }
-  
-  .project-item, .session-item {
-    color: #333;
-    font-size: 18px;
-    padding: 10px 0;
-    border-bottom: 1px solid #eee;
-  }
-  
-  .no-projects, .no-sessions {
-    color: #888;
-    font-size: 16px;
-  }
-  
-  .center-button {
-    text-align: center;
-  }
-  
-  .create-session-btn {
-    background-color: #6a5b9c;
-    color: white;
-    padding: 15px 30px;
-    border: none;
-    border-radius: 25px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s;
-  }
-  
-  .create-session-btn:hover {
-    background-color: #5a4c8a;
+    font-size: 1.8rem;
   }
 
-  .session-actions {
-    display: flex;
+  .card-header {
+    font-size: 1.3rem;
+  }
+
+  .dual-buttons {
     flex-direction: column;
     align-items: center;
-    gap: 15px;
-    margin-bottom: 30px;
   }
-  
-  .join-session-container {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-  }
-  
-  .join-input {
-    padding: 10px;
-    border-radius: 10px;
-    border: 1px solid #ccc;
-    font-size: 16px;
-    width: 220px;
-  }
-  
-  .join-btn {
-    background-color: #6a5b9c;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.3s;
-  }
-  
-  .join-btn:hover {
-    background-color: #5a4c8a;
-  }
-  
+
   .logout-btn {
-    background-color: #d9534f;
-    color: white;
-    padding: 12px 25px;
-    border: none;
-    border-radius: 25px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background-color 0.3s;
+    width: 100%;
+    max-width: 300px;
   }
-  
-  .logout-btn:hover {
-    background-color: #c9302c;
-  }
-  
-  
+}

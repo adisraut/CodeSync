@@ -1,76 +1,85 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
-import { collection, query, getDocs, where } from 'firebase/firestore';
+import { collection, query, getDocs, where, addDoc } from 'firebase/firestore';
 import './Dashboard.css';
 
 const Dashboard = () => {
   const [projects, setProjects] = useState([]);
-  const [sessions, setSessions] = useState([]);
-  const [joinCode, setJoinCode] = useState('');
   const user = auth.currentUser;
   const navigate = useNavigate();
 
   useEffect(() => {
     if (user) {
-      fetchProjects(); // Fetch projects only when the user is authenticated
-      fetchSessions();
+      fetchProjects();
     } else {
-      navigate('/login'); // Redirect to login if the user is not authenticated
+      navigate('/login');
     }
   }, [user]);
 
   const fetchProjects = async () => {
-    if (!user) return; // Ensure user is logged in
+    if (!user) return;
 
     try {
-      console.log("Fetching projects for user:", user.uid); // Debugging log
-      const projectsRef = collection(db, 'users', user.uid, 'projects');
-      const q = query(projectsRef);
+      const q = query(collection(db, 'projects'), where('ownerId', '==', user.uid));
       const querySnapshot = await getDocs(q);
-      
-      // Log the result of the query
-      console.log("Fetched projects:", querySnapshot.docs);
 
-      const projectData = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        name: doc.data().name,
-      }));
-      
-      // Log the state being set
-      console.log("Mapped project data:", projectData);
+      const projectData = [];
+      for (const doc of querySnapshot.docs) {
+        const project = {
+          id: doc.id,
+          name: doc.data().name,
+        };
 
-      setProjects(projectData); // Update the state with fetched project data
+        const sessionQuery = query(collection(db, 'sessions'), where('projectId', '==', doc.id));
+        const sessionSnapshot = await getDocs(sessionQuery);
+        const sessionDoc = sessionSnapshot.docs[0];
+        project.sessionId = sessionDoc ? sessionDoc.id : null;
+        projectData.push(project);
+      }
+
+      setProjects(projectData);
     } catch (error) {
       console.error('Error fetching projects:', error);
-    }
-  };
-
-  const fetchSessions = async () => {
-    try {
-      const sessionsRef = collection(db, 'sessions');
-      const q = query(sessionsRef);
-      const querySnapshot = await getDocs(q);
-      const sessionData = querySnapshot.docs.map((doc) => doc.data());
-      setSessions(sessionData);
-    } catch (error) {
-      console.error('Error fetching sessions:', error);
-    }
-  };
-
-  const handleCreateSession = () => {
-    navigate('/CreateSession');
-  };
-
-  const handleJoinSession = () => {
-    if (joinCode.trim() !== '') {
-      navigate(`/session/${joinCode.trim()}`);
     }
   };
 
   const handleLogout = async () => {
     await auth.signOut();
     navigate('/');
+  };
+
+  const handleProjectClick = (sessionId) => {
+    if (!sessionId) {
+      alert('This project does not have an active session.');
+    } else {
+      navigate(`/session/${sessionId}`);
+    }
+  };
+
+  const handleCreateProject = async () => {
+    const projectName = prompt('Enter a name for your new project:');
+    if (!projectName || !user) return;
+
+    try {
+      // Create project
+      const projectRef = await addDoc(collection(db, 'projects'), {
+        name: projectName,
+        ownerId: user.uid,
+      });
+
+      // Create session
+      const sessionRef = await addDoc(collection(db, 'sessions'), {
+        projectId: projectRef.id,
+        createdAt: new Date(),
+      });
+
+      // Refresh project list
+      fetchProjects();
+    } catch (error) {
+      console.error('Error creating project/session:', error);
+      alert('Something went wrong. Please try again.');
+    }
   };
 
   return (
@@ -80,59 +89,32 @@ const Dashboard = () => {
           Welcome, {user?.displayName || user?.email}
         </h1>
 
-        {/* Session Buttons */}
-        <div className="session-actions">
-          <button onClick={handleCreateSession} className="create-session-btn">
-            Create New Session
-          </button>
-
-          <div className="join-session-container">
-            <input
-              type="text"
-              placeholder="Enter Session ID"
-              className="join-input"
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value)}
-            />
-            <button onClick={handleJoinSession} className="join-btn">
-              Join
-            </button>
-          </div>
-        </div>
-
-        {/* Projects */}
+        {/* Projects Section */}
         <div className="card projects-card">
           <h2 className="card-header">Your Projects</h2>
           <ul>
             {projects.length === 0 ? (
               <li className="no-projects">You don't have any projects yet.</li>
             ) : (
-              projects.map((project, index) => (
-                <li key={index} className="project-item">
-                  {project.name}
+              projects.map((project) => (
+                <li
+                  key={project.id}
+                  className="project-item clickable"
+                  onClick={() => handleProjectClick(project.sessionId)}
+                >
+                  <strong>{project.name}</strong> <br />
+                  <span className="session-id">Session ID: {project.sessionId || 'N/A'}</span>
                 </li>
               ))
             )}
           </ul>
         </div>
 
-        {/* Sessions */}
-        <div className="card sessions-card">
-          <h2 className="card-header">Your Sessions</h2>
-          <ul>
-            {sessions.length === 0 ? (
-              <li className="no-sessions">You don't have any active sessions.</li>
-            ) : (
-              sessions.map((session, index) => (
-                <li key={index} className="session-item">
-                  {session.name}
-                </li>
-              ))
-            )}
-          </ul>
-        </div>
-
-        <div className="center-button">
+        {/* Buttons */}
+        <div className="center-button dual-buttons">
+          <button onClick={handleCreateProject} className="createproj">
+            Create Project
+          </button>
           <button onClick={handleLogout} className="logout-btn">
             Logout
           </button>

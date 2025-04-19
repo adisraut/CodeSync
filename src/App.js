@@ -8,6 +8,7 @@ import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import CreateSession from './pages/CreateSession';
+import SessionEditor from './pages/SessionEditor';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -59,6 +60,7 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/CreateSession" element={<CreateSession />} />
+        <Route path="/session/:sessionId" element={<SessionEditor />} />
       </Routes>
     </Router>
   );
