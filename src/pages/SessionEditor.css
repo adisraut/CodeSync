@@ -128,4 +128,56 @@
   .output-text {
     white-space: pre-wrap;
   }
+
+  /* Terminal styles */
+.terminal-content {
+  height: 100%;
+  overflow-y: auto;
+  padding: 8px;
+  font-family: 'Courier New', monospace;
+}
+
+.terminal-line {
+  white-space: pre-wrap;
+  line-height: 1.4;
+  margin-bottom: 2px;
+}
+
+.terminal-line.system {
+  color: #66d9ef; /* Light blue for system messages */
+}
+
+.terminal-line.error {
+  color: #f92672; /* Red for errors */
+}
+
+.terminal-line.input {
+  color: #a6e22e; /* Green for user input */
+  font-weight: bold;
+}
+
+.terminal-input-form {
+  display: flex;
+  margin-top: 8px;
+}
+
+.input-prompt {
+  color: #a6e22e;
+  margin-right: 4px;
+  font-weight: bold;
+}
+
+.terminal-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #f8f8f2;
+  font-family: 'Courier New', monospace;
+  padding: 0;
+}
+
+.terminal-input::placeholder {
+  color: rgba(248, 248, 242, 0.5);
+}
   
