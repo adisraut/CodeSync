@@ -1,138 +1,151 @@
 from flask import Flask, request, jsonify
+from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 import subprocess
 import tempfile
 import os
-import queue
 import threading
 import time
-import sys
+import select
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
-
-# Store active processes
+CORS(app)
+socketio = SocketIO(app, cors_allowed_origins='*')
 active_processes = {}
 
 @app.route('/', methods=['GET'])
 def home():
-    return "Coding Platform API is running. Use POST /run to execute code."
+    return "Coding Platform API is running. Use Socket.IO to run code."
 
-@app.route('/run', methods=['POST'])
-def run_code():
+def read_output(session_id, pipe, is_error=False):
     try:
-        data = request.get_json()
-        code = data.get('code', '')
+        for line in iter(pipe.readline, ''):
+            if not line:
+                break
+            
+            stripped = line.rstrip()
+            event_type = 'error' if is_error else 'output'
+            
+            socketio.emit('output', {
+                'session_id': session_id, 
+                'output': [{'type': event_type, 'text': stripped}]
+            })
+            
+            # If the process isn't in error mode and waiting for input
+            if not is_error and 'input' in stripped.lower():
+                active_processes[session_id]['waiting_for_input'] = True
+                socketio.emit('input_required', {'session_id': session_id})
+                
+        pipe.close()
+    except Exception as e:
+        socketio.emit('output', {
+            'session_id': session_id,
+            'output': [{'type': 'error', 'text': f"Error reading output: {str(e)}"}]
+        })
+
+def monitor_process(session_id):
+    try:
+        process_data = active_processes[session_id]
+        process = process_data['process']
         
-        # Generate a session ID for this code execution
-        session_id = str(time.time())
+        # While the process is running
+        while process.poll() is None:
+            # Check if process is waiting for input by monitoring stdout
+            if process_data.get('waiting_for_input', False) == False:
+                # Check if stdout has data but is waiting for input
+                r, _, _ = select.select([process.stdout], [], [], 0.1)
+                if not r:
+                    process_data['waiting_for_input'] = True
+                    socketio.emit('input_required', {'session_id': session_id})
+            
+            time.sleep(0.1)
         
-        # Write code to a temporary Python file
-        with tempfile.NamedTemporaryFile(suffix='.py', delete=False) as temp:
-            # Add python unbuffered flag to ensure input/output isn't buffered
-            temp.write(code.encode())
-            temp.flush()
-            file_path = temp.name
-        
-        # Start process with pipes for stdin/stdout/stderr
-        # Use -u flag to run Python in unbuffered mode
+        # Process has finished
+        socketio.emit('execution_complete', {
+            'session_id': session_id,
+            'exit_code': process.returncode
+        })
+    except Exception as e:
+        socketio.emit('execution_error', str(e))
+    finally:
+        # Clean up
+        if session_id in active_processes:
+            try:
+                os.remove(active_processes[session_id]['file_path'])
+            except:
+                pass
+            active_processes.pop(session_id, None)
+
+@socketio.on('run_code')
+def handle_run_code(data):
+    code = data.get('code', '')
+    session_id = data.get('session_id')
+
+    if not session_id:
+        emit('error', {'text': 'Missing session_id'})
+        return
+
+    # Kill any existing process for this session
+    if session_id in active_processes:
+        try:
+            old_process = active_processes[session_id]['process']
+            if old_process.poll() is None:
+                old_process.terminate()
+                old_process.wait(timeout=1)
+        except:
+            pass  # Best effort to kill previous process
+        active_processes.pop(session_id, None)
+
+    with tempfile.NamedTemporaryFile(suffix='.py', delete=False) as temp:
+        temp.write(code.encode())
+        temp.flush()
+        file_path = temp.name
+
+    try:
         process = subprocess.Popen(
-            ['python3', '-u', file_path],
+            ['python3', '-u', file_path],  # -u for unbuffered output
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             universal_newlines=True,
-            bufsize=0
+            bufsize=0  # Unbuffered
         )
-        
-        # Store process and queues for this session
+
         active_processes[session_id] = {
             'process': process,
             'file_path': file_path,
-            'output': [],
             'waiting_for_input': False
         }
-        
-        # Start threads to monitor process output
-        def read_output(pipe, is_error=False):
-            for line in iter(pipe.readline, ''):
-                if is_error:
-                    active_processes[session_id]['output'].append({
-                        'type': 'error',
-                        'text': line.rstrip()
-                    })
-                else:
-                    # Check if line contains input prompt
-                    if "input(" in line or ":" in line or "?" in line:
-                        active_processes[session_id]['waiting_for_input'] = True
-                    
-                    active_processes[session_id]['output'].append({
-                        'type': 'output',
-                        'text': line.rstrip()
-                    })
-            
-        threading.Thread(target=read_output, args=(process.stdout,), daemon=True).start()
-        threading.Thread(target=read_output, args=(process.stderr, True), daemon=True).start()
-        
-        return jsonify({
-            'session_id': session_id,
-            'status': 'running'
-        })
-    
+
+        threading.Thread(target=read_output, args=(session_id, process.stdout), daemon=True).start()
+        threading.Thread(target=read_output, args=(session_id, process.stderr, True), daemon=True).start()
+        threading.Thread(target=monitor_process, args=(session_id,), daemon=True).start()
+
+        emit('session_started', {'session_id': session_id})
     except Exception as e:
-        return jsonify({'error': str(e)})
+        emit('execution_error', str(e))
 
-@app.route('/status/<session_id>', methods=['GET'])
-def get_status(session_id):
-    if session_id not in active_processes:
-        return jsonify({'error': 'Session not found'})
-    
-    process_data = active_processes[session_id]
-    process = process_data['process']
-    output = process_data['output'].copy()
-    waiting_for_input = process_data['waiting_for_input']
-    
-    # Clear output queue for next call
-    process_data['output'] = []
-    
-    status = 'running'
-    if process.poll() is not None:
-        status = 'completed'
-        # Clean up completed process
-        if status == 'completed':
-            try:
-                os.remove(process_data['file_path'])
-            except:
-                pass
-            active_processes.pop(session_id, None)
-    
-    return jsonify({
-        'status': status,
-        'output': output,
-        'waiting_for_input': waiting_for_input,
-        'exit_code': process.returncode if process.poll() is not None else None
-    })
-
-@app.route('/input/<session_id>', methods=['POST'])
-def send_input(session_id):
-    if session_id not in active_processes:
-        return jsonify({'error': 'Session not found'})
-    
-    data = request.get_json()
+@socketio.on('send_input')
+def handle_input(data):
+    session_id = data.get('session_id')
     user_input = data.get('input', '')
-    
-    process = active_processes[session_id]['process']
-    if process.poll() is None:  # Process is still running
-        try:
-            process.stdin.write(user_input + '\n')
-            process.stdin.flush()
-            active_processes[session_id]['waiting_for_input'] = False
-            return jsonify({'status': 'input_sent'})
-        except Exception as e:
-            return jsonify({'error': f'Failed to send input: {str(e)}'})
-    else:
-        return jsonify({'error': 'Process is no longer running'})
 
-# ✅ Add this to actually run the Flask server
+    if session_id in active_processes:
+        process_data = active_processes[session_id]
+        process = process_data['process']
+        
+        if process.poll() is None:
+            try:
+                process.stdin.write(user_input + '\n')
+                process.stdin.flush()
+                process_data['waiting_for_input'] = False
+                emit('input_sent', {'session_id': session_id, 'status': 'success'})
+            except Exception as e:
+                emit('error', {'session_id': session_id, 'text': f"Error sending input: {str(e)}"})
+        else:
+            emit('error', {'session_id': session_id, 'text': 'Process is no longer running'})
+    else:
+        emit('error', {'session_id': session_id, 'text': 'No active process for this session'})
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    socketio.run(app, host='0.0.0.0', port=8080, allow_unsafe_werkzeug=True)

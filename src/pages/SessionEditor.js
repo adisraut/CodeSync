@@ -14,8 +14,12 @@ import {
 } from 'firebase/firestore';
 import CodeMirror from '@uiw/react-codemirror';
 import { python } from '@codemirror/lang-python';
-import { dracula } from '@uiw/codemirror-theme-dracula'; // 💡 Dark theme
+import { dracula } from '@uiw/codemirror-theme-dracula';
+import io from 'socket.io-client';
 import './SessionEditor.css';
+
+// Create a socket connection to the backend
+const socket = io('http://localhost:8080');
 
 const SessionEditor = () => {
   const { sessionId } = useParams();
@@ -23,7 +27,7 @@ const SessionEditor = () => {
   const [files, setFiles] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileContent, setFileContent] = useState('');
-  const [output, setOutput] = useState([]); // Changed to array for terminal line tracking
+  const [output, setOutput] = useState([]);
   const [userInput, setUserInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [codeSessionId, setCodeSessionId] = useState(null);
@@ -33,7 +37,6 @@ const SessionEditor = () => {
   const outputEndRef = useRef(null);
   const hasSelectedInitialFile = useRef(false);
   const lastContentRef = useRef('');
-  const statusPollingRef = useRef(null);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -101,28 +104,78 @@ const SessionEditor = () => {
     return () => unsubscribe();
   }, [selectedFile]);
 
-  // Scroll to bottom of terminal output whenever it updates
+  // Auto-scroll to bottom of output when it changes
   useEffect(() => {
     if (outputEndRef.current) {
       outputEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [output]);
 
-  // Focus input field when waiting for input
+  // Auto-focus input when waiting for input
   useEffect(() => {
     if (waitingForInput && inputRef.current) {
       inputRef.current.focus();
     }
   }, [waitingForInput]);
 
-  // Clean up polling on unmount
+  // Socket event handlers
   useEffect(() => {
-    return () => {
-      if (statusPollingRef.current) {
-        clearInterval(statusPollingRef.current);
+    // Handle incoming output from the backend
+    socket.on('output', (data) => {
+      if (data.session_id === sessionId) {
+        setOutput((prev) => [...prev, ...data.output]);
       }
+    });
+
+    // Handle when input is required by the process
+    socket.on('input_required', (data) => {
+      if (data.session_id === sessionId) {
+        setWaitingForInput(true);
+      }
+    });
+
+    // Handle when execution is completed
+    socket.on('execution_complete', (data) => {
+      if (data.session_id === sessionId) {
+        setIsRunning(false);
+        setWaitingForInput(false);
+        setCodeSessionId(null);
+        setOutput((prev) => [...prev, { type: 'system', text: 'Execution completed.' }]);
+      }
+    });
+
+    // Handle execution errors
+    socket.on('execution_error', (error) => {
+      setOutput((prev) => [...prev, { type: 'error', text: error }]);
+      setIsRunning(false);
+      setWaitingForInput(false);
+      setCodeSessionId(null);
+    });
+
+    // Handle successful input submission
+    socket.on('input_sent', (data) => {
+      if (data.session_id === sessionId) {
+        setWaitingForInput(false);
+      }
+    });
+
+    // Handle session started confirmation
+    socket.on('session_started', (data) => {
+      if (data.session_id === sessionId) {
+        setCodeSessionId(sessionId);
+      }
+    });
+
+    // Cleanup function to remove event listeners
+    return () => {
+      socket.off('output');
+      socket.off('input_required');
+      socket.off('execution_complete');
+      socket.off('execution_error');
+      socket.off('input_sent');
+      socket.off('session_started');
     };
-  }, []);
+  }, [sessionId]);
 
   const handleEditorChange = useCallback(
     async (value) => {
@@ -165,106 +218,33 @@ const SessionEditor = () => {
     hasSelectedInitialFile.current = true;
   };
 
-  const startPolling = (sessionId) => {
-    // Clear any existing polling
-    if (statusPollingRef.current) {
-      clearInterval(statusPollingRef.current);
-    }
-
-    // Poll for updates every 300ms
-    statusPollingRef.current = setInterval(async () => {
-      try {
-        const response = await fetch(`http://localhost:8080/status/${sessionId}`);
-        const data = await response.json();
-
-        if (data.output && data.output.length > 0) {
-          setOutput(prev => [...prev, ...data.output]);
-        }
-        
-        // Update waiting for input status
-        if (data.waiting_for_input !== undefined) {
-          setWaitingForInput(data.waiting_for_input);
-        }
-
-        if (data.status === 'completed') {
-          setIsRunning(false);
-          clearInterval(statusPollingRef.current);
-          statusPollingRef.current = null;
-          setCodeSessionId(null);
-          setWaitingForInput(false);
-        }
-      } catch (error) {
-        console.error('Error polling status:', error);
-      }
-    }, 300);
-  };
-
-  const handleRunCode = async () => {
+  const handleRunCode = () => {
     if (!fileContent.trim()) {
       setOutput([{ type: 'error', text: 'No code to run' }]);
       return;
     }
 
-    // Stop any existing polling
-    if (statusPollingRef.current) {
-      clearInterval(statusPollingRef.current);
-      statusPollingRef.current = null;
-    }
-
     setIsRunning(true);
     setOutput([{ type: 'system', text: 'Running code...' }]);
-    setCodeSessionId(null);
     setWaitingForInput(false);
     setUserInput('');
 
-    try {
-      const response = await fetch('http://localhost:8080/run', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ code: fileContent }),
-      });
-
-      const data = await response.json();
-      
-      if (data.error) {
-        setOutput([{ type: 'error', text: data.error }]);
-        setIsRunning(false);
-      } else if (data.session_id) {
-        setCodeSessionId(data.session_id);
-        startPolling(data.session_id);
-      }
-    } catch (error) {
-      console.error('Error executing code:', error);
-      setOutput([{ type: 'error', text: `Failed to execute code: ${error.message}` }]);
-      setIsRunning(false);
-    }
+    socket.emit('run_code', { session_id: sessionId, code: fileContent });
   };
 
-  const handleInputSubmit = async (e) => {
+  const handleInputSubmit = (e) => {
     e.preventDefault();
-    
-    if (!codeSessionId || !userInput.trim()) return;
-    
+    if (!sessionId || !isRunning) return;
+
     const inputValue = userInput;
     setUserInput('');
-    
-    // Add user input to output display
-    setOutput(prev => [...prev, { type: 'input', text: inputValue }]);
-    
-    try {
-      await fetch(`http://localhost:8080/input/${codeSessionId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ input: inputValue }),
-      });
-    } catch (error) {
-      console.error('Error sending input:', error);
-      setOutput(prev => [...prev, { type: 'error', text: `Failed to send input: ${error.message}` }]);
-    }
+    setOutput((prev) => [...prev, { type: 'input', text: inputValue }]);
+    setWaitingForInput(false);
+
+    socket.emit('send_input', {
+      session_id: sessionId,
+      input: inputValue,
+    });
   };
 
   return (
@@ -290,15 +270,19 @@ const SessionEditor = () => {
       <div className="editor-area">
         <div className="editor-header">
           <div>
-            <h3>Session ID: <span>{sessionId}</span></h3>
-            <h4>Project: <span>{project?.name || 'Loading...'}</span></h4>
+            <h3>
+              Session ID: <span>{sessionId}</span>
+            </h3>
+            <h4>
+              Project: <span>{project?.name || 'Loading...'}</span>
+            </h4>
           </div>
-          <button 
-            className="run-button" 
-            onClick={handleRunCode} 
-            disabled={isRunning}
+          <button
+            className="run-button"
+            onClick={handleRunCode}
+            disabled={isRunning && !waitingForInput}
           >
-            {isRunning ? '⏳ Running...' : '▶ Run'}
+            {isRunning && !waitingForInput ? '⏳ Running...' : '▶ Run'}
           </button>
         </div>
 
@@ -307,7 +291,7 @@ const SessionEditor = () => {
             <CodeMirror
               value={fileContent}
               height="calc(100vh - 230px)"
-              theme={dracula} // 🧛 Dark theme
+              theme={dracula}
               extensions={[python()]}
               onChange={handleEditorChange}
               basicSetup={{ lineNumbers: true, autocompletion: true }}
@@ -317,20 +301,17 @@ const SessionEditor = () => {
           )}
         </div>
 
-        {/* 🖥 Terminal-like Output Section */}
         <div className="terminal-output">
           <div className="terminal-header">Terminal</div>
           <div className="terminal-content">
             {output.map((item, index) => (
-              <div 
-                key={index} 
-                className={`terminal-line ${item.type}`}
-              >
-                {item.type === 'input' ? '> ' : ''}{item.text}
+              <div key={index} className={`terminal-line ${item.type}`}>
+                {item.type === 'input' ? '> ' : ''}
+                {item.text}
               </div>
             ))}
             <div ref={outputEndRef} />
-            
+
             {isRunning && waitingForInput && (
               <form onSubmit={handleInputSubmit} className="terminal-input-form">
                 <span className="input-prompt">{'> '}</span>
@@ -341,7 +322,11 @@ const SessionEditor = () => {
                   onChange={(e) => setUserInput(e.target.value)}
                   className="terminal-input"
                   placeholder="Enter input here..."
+                  autoFocus
                 />
+                <button type="submit" className="input-submit-button">
+                  Submit
+                </button>
               </form>
             )}
           </div>
