@@ -19,7 +19,7 @@ import io from 'socket.io-client';
 import './SessionEditor.css';
 
 // Create a socket connection to the backend
-const socket = io('http://localhost:8080');
+const socket = io('https://my-app-460062831550.us-central1.run.app');
 
 const SessionEditor = () => {
   const { sessionId } = useParams();

@@ -1,0 +1,20 @@
+runtime: nodejs18
+
+env_variables:
+  REACT_APP_API_URL: "https://my-app-460062831550.us-central1.run.app"  # Replace with your backend URL if needed
+
+handlers:
+  - url: /static
+    static_dir: build/static
+
+  - url: /.*\.(gif|png|jpg|css|js|html|json|map|ico)$
+    static_files: build/\1
+    upload: build/(.*\.(gif|png|jpg|css|js|html|json|map|ico))$
+
+  - url: /index.html
+    static_files: build/index.html
+    upload: build/index.html
+
+  - url: /
+    static_files: build/index.html
+    upload: build/index.html
