@@ -1,4 +1,4 @@
-runtime: nodejs18
+runtime: nodejs24
 
 env_variables:
   REACT_APP_API_URL: "https://my-app-460062831550.us-central1.run.app"  # Replace with your backend URL if needed
