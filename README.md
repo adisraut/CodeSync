@@ -1,70 +1,162 @@
-# Getting Started with Create React App
+# CodeSync
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+![CodeSync Banner](https://placehold.co/1200x300/e3e3e3/31343C?text=CodeSync&font=montserrat)
 
-## Available Scripts
+CodeSync is a cloud-native, web-based code editor that provides users with an accessible and setup-free Python development environment. Write, execute, and manage your Python code entirely in the cloud, with real-time saving and secure authentication.
 
-In the project directory, you can run:
+## 🌟 Features
 
-### `npm start`
+- **Zero Setup Required**: Access a fully-featured Python development environment directly in your browser
+- **Real-time Code Execution**: Run Python code on the fly using secure Docker containers
+- **Auto-saving Projects**: All your code is automatically saved to the cloud as you type
+- **User Authentication**: Secure access with email/password or Google sign-in
+- **Project & File Management**: Create, organize, and manage multiple projects and files
+- **Responsive UI**: Modern, intuitive interface built with React and Tailwind CSS
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## 🔧 Tech Stack
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### Frontend
+- **React**: Component-based UI library
+- **CodeMirror**: Feature-rich code editor
+- **Tailwind CSS**: Utility-first CSS framework for responsive design
 
-### `npm test`
+### Backend
+- **Flask**: Lightweight Python web framework for API development
+- **Docker**: Secure, isolated code execution environment
+- **Firebase**:
+  - **Authentication**: User login and access control
+  - **Firestore**: Real-time database for project storage
+  - **Hosting**: Frontend deployment
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Cloud Infrastructure
+- **Google Cloud Run**: Serverless backend hosting
+- **Firebase**: Frontend hosting and authentication
 
-### `npm run build`
+## 📋 Architecture
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+CodeSync follows a modern cloud-native architecture with loose coupling between components:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+1. **Frontend Layer** (React + CodeMirror)
+   - Handles user interaction, code input, file management
+   - Communicates with backend via API calls
+   - Syncs with Firestore for real-time storage
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+2. **Backend Layer** (Flask + Docker on Google Cloud Run)
+   - Receives code from frontend
+   - Executes it securely within Docker containers
+   - Returns execution results to the frontend
 
-### `npm run eject`
+3. **Data Layer** (Firebase Firestore)
+   - Stores user projects and files
+   - Enables real-time synchronization
+   - Enforces user-specific access control
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+4. **Authentication Layer** (Firebase Auth)
+   - Manages user registration and login
+   - Secures access to personal projects
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## 🚀 Getting Started
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### Prerequisites
+- Node.js and npm
+- Python 3.10+
+- Docker
+- Firebase account
+- Google Cloud Platform account
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### Local Development Setup
 
-## Learn More
+1. **Clone the repository**
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```bash
+git clone https://github.com/yourusername/codesync.git
+cd codesync
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+2. **Set up the frontend**
 
-### Code Splitting
+```bash
+cd frontend
+npm install
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+3. **Set up Firebase configuration**
 
-### Analyzing the Bundle Size
+Create a `.env` file in the frontend directory with your Firebase config:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```env
+REACT_APP_FIREBASE_API_KEY=your-api-key
+REACT_APP_FIREBASE_AUTH_DOMAIN=your-auth-domain
+REACT_APP_FIREBASE_PROJECT_ID=your-project-id
+REACT_APP_FIREBASE_STORAGE_BUCKET=your-storage-bucket
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
+REACT_APP_FIREBASE_APP_ID=your-app-id
+```
 
-### Making a Progressive Web App
+4. **Set up the backend**
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+```bash
+cd ../backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
 
-### Advanced Configuration
+5. **Run Docker for code execution**
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+Ensure Docker is running on your system.
 
-### Deployment
+6. **Start the development servers**
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+Frontend:
+```bash
+cd frontend
+npm start
+```
 
-### `npm run build` fails to minify
+Backend:
+```bash
+cd backend
+flask run
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+7. **Visit the application**
+
+Open your browser and navigate to `http://localhost:3000`
+
+## 🔒 Security
+
+- User code is executed in isolated Docker containers to prevent system access
+- Authentication is handled securely via Firebase Auth
+- Firestore security rules ensure users can only access their own data
+- HTTPS is enforced for all communications
+
+## 🔄 Deployment
+
+The application is deployed using Google Cloud Platform:
+- Frontend on Firebase Hosting
+- Backend on Google Cloud Run
+- Live demo available at: https://codesync-2025.uc.r.appspot.com
+
+## 🔮 Future Scope
+
+Future enhancements planned for CodeSync include:
+- Support for additional programming languages
+- Real-time collaboration features
+- Debugging capabilities
+- Code versioning and history
+- Team access control and sharing
+- Integration with version control systems
+
+## 📝 License
+
+[MIT License](LICENSE)
+
+## 👨‍💻 Author
+
+- Aditya Raut
+- Harikrishnan Gopal
+
+---
+
+*Made with ❤️ for developers who want to code anywhere, anytime*
