@@ -1,7 +1,5 @@
 # CodeSync
 
-![CodeSync Banner](https://placehold.co/1200x300/e3e3e3/31343C?text=CodeSync&font=montserrat)
-
 CodeSync is a cloud-native, web-based code editor that provides users with an accessible and setup-free Python development environment. Write, execute, and manage your Python code entirely in the cloud, with real-time saving and secure authentication.
 
 ## 🌟 Features
